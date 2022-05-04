@@ -1,0 +1,42 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: eks-121
+  region: us-east-1
+
+managedNodeGroups:
+  - name: managed-ng-private
+    minSize: 3
+    maxSize: 10
+    desiredCapacity: 3
+    instanceType: t3.medium
+    volumeType: gp3
+    volumeSize: 100
+    privateNetworking: true
+    # ssh:
+    #   allow: true
+    #   publicKeyPath: /home/ec2-user/.ssh/authorized_keys
+    #   # new feature for restricting SSH access to certain AWS security group IDs
+    #   sourceSecurityGroupIds: ["sg-0be6263130f624e61"]
+    labels: {
+      "role": "worker",
+      "network": "private"
+    }
+
+    tags:
+      nodegroup-role: worker
+    subnets:
+      - subnet-0674477df07b3dd46
+      - subnet-00f5c86ac2f784159
+      - subnet-0d060a2eed4fd2106
+    iam:
+      withAddonPolicies:
+        externalDNS: true
+        certManager: true
+        autoScaler: true
+        ebs: true
+        fsx: true
+        efs: true
+        albIngress: true
+        cloudWatch: true

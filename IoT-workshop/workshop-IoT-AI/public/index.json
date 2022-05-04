@@ -1,0 +1,85 @@
+[
+{
+	"uri": "/",
+	"title": "AWS Greengrass ML",
+	"tags": [],
+	"description": "",
+	"content": "  Greengrass ML workshop 开发者动手训练营\n本部署指南讨论了AWS Greengrass的部署与使用。\n"
+},
+{
+	"uri": "/000_introduction/",
+	"title": "OverView",
+	"tags": [],
+	"description": "",
+	"content": "在这个实验中，我们将用树莓派来模拟一个 IOT 智能摄像头。\n在树莓派上部署 AWS Greengrass ，它可以从云端加载一个用于探测人体动作的模型以及用于推理的 lambda 代码，\n每秒钟生成一个推理的结果并发送到 AWS IOT 云端（Lambda程序设计为仅发送置信度高于 95%的结果）。\n"
+},
+{
+	"uri": "/001_config_pi_and_greengrass/",
+	"title": "安装、配置树莓派和 Greengrass",
+	"tags": [],
+	"description": "",
+	"content": " 部署说明 本章节将逐步带领您实现安装、配置树莓派和 Greengrass。\n我们将分别从以下步骤进行部署：\n 1. 安装摄像头   2. 安装 Greengrass 软件   "
+},
+{
+	"uri": "/002_congif_gg_on_pi/",
+	"title": "在AWS IOT 上配置 Greengrass组",
+	"tags": [],
+	"description": "",
+	"content": " 部署说明 接下来我们将完成在 AWS IOT 云端的配置，将云端的机器学习模型和 Lambda 推理代码部署到设备端。\n我们将分别从以下步骤进行部署：\n 3. 创建用于边缘推理的 Lambda 函数   4. 配置Greengrass group   "
+},
+{
+	"uri": "/003_deploy_and_test/",
+	"title": "部署与验证",
+	"tags": [],
+	"description": "",
+	"content": "在Greengrass组的界面右上角，选中”操作“，”部署“，即可将刚才我们配置的所有参数、代码以及机器学习的模型部署到树莓派上，如下图所示： 验证模式是否成功部署， Lambda 是否正常运行\n在 AWS IOT console ，点击”测试“ ，并在右侧的 subscription topic 里面输入 xxxx/action (刚才你自己设定的 topic)，点击 subscript to topic。\n此时你在树莓派摄像头前可以做各种动作，比如将手机放到耳边，做打电话状。\n保持这个动作几秒钟，你就能在 Console 界面看到推理的结果。\n如下图所示： "
+},
+{
+	"uri": "/001_config_pi_and_greengrass/020_config_camera/",
+	"title": "1. 安装摄像头",
+	"tags": [],
+	"description": "",
+	"content": " 安装摄像头 请将实验材料中的摄像头的数据线插入树莓派的摄像头接口中，如图所示：  注意摄像头排线的安装方向\n  SSH连接到树莓派\n请用你熟悉的 SSH 工具连接树莓派，树莓派的 IP 地址在你手头的实验提示文档上。用户名为 pi，密码为 awsworkshop。\n登录后会提示如下信息：\n 配置激活摄像头 在命令行提示符下运行：\nsudo raspi-config  您将看到以下内容：\n选择 5 Interfacing Options回车，选择 P1 Camera并回车，选择 Yes并回车以激活 camera。按 ESC 退出配置界面。\n OS 参数设置 在树莓派 OS 的命令行中运行如下命令：\nsudo adduser --system ggc_user sudo addgroup --system ggc_group cd /etc/sysctl.d sudo nano 98-rpi.conf  使用文本编辑器（nano）将以下两行添加到文件的末尾。按 control+x 退出，并输入 yes以确认保存，回车保存文件。\nfs.protected_hardlinks = 1 fs.protected_symlinks = 1  在命令行中输入命令：\nsudo nano /boot/cmdline.txt  将以下内容附加到现有行的末尾，而不是作为新行。\ncgroup_enable=memory cgroup_memory=1  现在重启 树莓派。\nsudo reboot   "
+},
+{
+	"uri": "/001_config_pi_and_greengrass/030_conifg_green_grass/",
+	"title": "2. 安装 Greengrass 软件",
+	"tags": [],
+	"description": "",
+	"content": " 重新 SSH 到树莓派上，运行以下命令以安装 Greengrass ，并下载 Amazon rootCA以用于安全认证。\nwget -O /tmp/greengrass.tar.gz https://d1onfpft10uf5o.cloudfront.net/greengrass-core/downloads/1.10.2/greengrass-linux-armv7l-1.10.2.tar.gz sudo mkdir -p /greengrass sudo tar -xzvf /tmp/greengrass.tar.gz -C / rm /tmp/greengrass.tar.gz cd /greengrass/certs/ sudo wget -O root.ca.pem https://www.amazontrust.com/repository/AmazonRootCA1.pem  在 AWS IoT 上配置 AWS IoT Greengrass\n在您的计算机上登录 AWS 管理控制台 并打开AWS IoT 控制台。\n在导航窗格中，选择 Greengrass\n在 Welcome to AWS IoT Greengrass (欢迎使用 AWS IoT Greengrass) 页面上，选择 Create a Group (创建组)。\n如果出现提示，则在 Greengrass needs your permission to access other services (Greengrass 需要访问其他服务的权限) 对话框中，选择 Grant permission (授予权限) 以允许控制台为您创建或配置 Greengrass 服务角色。\n您必须使用服务角色授权 AWS IoT Greengrass 代表您访问其他 AWS 服务。否则，部署会失败。 在 Set up your Greengrass group (设置您的 Greengrass 组) 页面上，选择 Use default creation (使用默认创建方式) 以创建一个组和一个 AWS IoT Greengrass 核心。\n每个组需要一个核心，而核心是一个管理本地 IoT 进程的设备。\n核心需要一个允许它访问 AWS IoT 的证书和相应密钥以及一个允许它执行 AWS IoT 和 AWS IoT Greengrass 操作的 AWS IoT 策略。\n当您选择 Use default creation (使用默认创建方式) 选项时，这些安全资源是为您创建的，并且核心是在 AWS IoT 注册表中预配置的。\n给你的 Greengrass 组取一个名字，为了避免与其他实验者取名冲突（因为大家共享一个中国区账号），建议取 GG_ML_xxx（其中 xxx 是你自己的名字），以便识别你自己的 Greengrass 组。\n点击两次下一步，并点击创建组和核心设备，AWS IoT 使用默认安全策略创建 AWS IoT Greengrass 组并创建配置文件以加载到设备上。\n在确认页面上，在 Download and store your Core\u0026rsquo;s security resources (下载并存储您的核心的安全资源) 下，选择 Download these resources as a tar.gz (将这些资源作为一个 tar.gz 下载)。\n您下载的 tar.gz 文件的名称以 10 位哈希值开头，该哈希值也用于证书和密钥文件名。\n点击完成。\n 在树莓派上配置并运行 Greengrass\n将刚才下载的 tar.gz 文件复制到树莓派上，可以用 SCP 命令或者是远程桌面（树莓派已经预先激活了 RDP 远程桌面功能）。以下是在你自己的电脑上用 SCP 命令复制文件的示例：\ncd /directory/of/gg/configure # 刚才下载保存tar.gz 文件的目录 scp ./yyyyyyyyyy-setup.tar.gz pi@xxx.xxx.xxx.xxx:/tmp # yyyyyyyyyy-setup.tar.gz是下载的配置文件的文件名，xxx.xxx.xxx.xxx是树莓派的 IP 地址   如果提示No space left on device，可以SSH 到树莓派上执行 sudo rm -rf /tmp/*，之后再执行 scp 命令  SSH 到树莓派上，执行以下命令将 Greengrass配置文件解压到/greengrass 目录中，并启动 greengrass 守护进程：\nsudo tar -xzvf /tmp/yyyyyyyy-setup.tar.gz -C /greengrass # yyyyyyyy-setup.tar.gz是复制到树莓派的配置文件 sudo /greengrass/ggc/core/greengrassd start  您可以运行以下命令来确认 AWS IoT Greengrass Core 软件（Greengrass 守护程序）是否正常工作。将 PID-number 替换为您的 PID：\nps aux | grep PID-number  如果要设置 greengrass 在开机时自动启动，可以参考配置初始化系统以启动 Greengrass 守护程序\n如果你的 greengrass 进程启动出现问题，可以用以下命令从日志中排查相关问题：\nsudo cat /greengrass/ggc/var/log/crash.log sudo cat /greengrass/ggc/var/log/system/runtime.log   "
+},
+{
+	"uri": "/002_congif_gg_on_pi/040_setup_lambda/",
+	"title": "3. 创建用于边缘推理的 Lambda 函数",
+	"tags": [],
+	"description": "",
+	"content": " 在你的电脑上点击以下链接下载 Lambda 代码：\nhttps://greengrass-ml-hands-on-lab.s3.cn-north-1.amazonaws.com.cn/HumanActionDetect.zip\n解压以后，编辑HumanActionDetect.py文件，在代码的93行与103行，将 your/action 替换成你自己的 topic，比如 edwin/action，并保存文件。  将 lambda 代码重新打包，注意：请在 HumanActionDetect 目录中运行打包，不要在上层目录中打包。\n 在AWS IOT Greengrass console点击选中刚才创建的 Grassgrass 组，比如GG_ML_edwin：\n 在打开的 console 中点击 Lambda， 添加Lambda，新建 Lambda, 如下图所示：   在创建 Lambda 的界面进行配置，选择从头开始创作，函数名称请输入你自己定义的名字，比如 GG_ML_edwin，运行时选择 Python 3.7。点击创建函数。\n 在 Lambda 代码的编辑界面上方，点击操作，上传 zip 文件，并选择刚才打包好的 lambda函数，点击上传\n 将页面拖到下方，在基本设置中点击“编辑”按钮，将处理程序改成HumanActionDetect.function_handler并保存。\n 再在 Lambda 界面的上方点击”操作“，发布新版本，输入版本为 1，点击”发布“\n继续点击”操作“，选中”创建别名“，创建一个别名为 ”production“的 Lambda 别名，并关联版本为”1“，点击”保存“。\n  "
+},
+{
+	"uri": "/002_congif_gg_on_pi/050_setup_greengrass_group/",
+	"title": "4. 配置Greengrass group",
+	"tags": [],
+	"description": "",
+	"content": " 回到 AWS IOT console，在刚才 greengrass 组的页面，选择“使用现有的Lambda”，选中刚才创建的 Lambda 函数（实验人数较多，请选中自己创建的那个函数）。点击”完成“。  在出现的界面中，右侧有三个点，点击一下并选中”编辑配置“。 将内存限制修改为 512MB，超时修改为 10秒，\n并将 Lambda 生命周期改为使此函数长时间生存，保持其无限期运行；对 /sys 目录的只读访问权限选中为”启用“。在环境变量中，输入 key-value 对的信息：MXNET_ENGINE_TYPE和NaiveEngine。\n最后点击”更新“。\n配置界面如下图所示：  在出现的页面中选择”资源“，然后点击添加本地资源，分别创建 4 个本地资源，以使 Lambda 函数具备访问摄像头和文件系统的权限。  创建摄像头设备资源 webcam，设备路径为/dev/video0, 选项如下图所示：  创建videoCoreInterface资源, 设备路径为/dev/vchiq，选项如下图所示：  创建videoCoreSharedMemory资源，设备路径为/dev/vcsm, 选项如下图所示：  下载以下链接的机器学习模型（该模型由 Amazon Sagemaker训练出来的）到你的本地电脑： https://greengrass-ml-hands-on-lab.s3.cn-north-1.amazonaws.com.cn/new-human-action-model.tar.gz\n 在IOT console 界面选中Machine Learning选项，并点击”添加机器学习资源“： 资源名称输入human-action-detect-model，并选择”在 S3 中上传模型 (包括通过深度学习编译器优化的模型)“，点击上传模型。 在新打开的 S3 界面创建一个存储桶（注：如果别的实验学员已经创建好了就无需创建了，直接用别人已经上传的模型就好了）\n并且把刚才下载的机器学习模型上传，上传的时候全部采用默认值即可。\n在 IOT console 点击刷新按钮，选中刚才上传的模型文件\n在本地路径中输入/models，意为将模型下载到 Greengrass 容器的/models 路径中，点击”保存“。  检查 lambda 的资源配置。如下图所示：  点击返回箭头，并选中”订阅“，点击”添加订阅“。在本步骤中将定义消息传递的逻辑关系。\nLambda 函数通过推理产生的 IOT 消息可以被发送到 AWS IOT。\n 选择源为”Lambda“，并选中你创建的 Lambda 函数。选择目标为服务，并选中 IOT Cloud。点击”下一步“。  在主题筛选条件中，输入你在 Lambda 代码中定义的 topic，比如”xxxx/action“，点击下一步，并点击完成。  更新 service role：\n在 AWS Console 中选中 IAM ，在 roles 选项页中筛选出 Greengrass_ServiceRole ，并点击进入。\n在页面中找到 附加策略，点击后筛选出 AmazonS3ReadOnlyAccess，点击Attach policy。\n如下图所示 最后Greengrass_ServiceRole的权限如下图所示：  回到 Greengrass group 中选中我们刚才的 group ，在左侧选中 设置 ，点击右上角的添加角色，并选中Greengrass_ServiceRole，点击保存。\n这样，Greengrass 就有权限去 S3 下载你私有的机器学习模型了，如下图所示：\n  "
+},
+{
+	"uri": "/categories/",
+	"title": "Categories",
+	"tags": [],
+	"description": "",
+	"content": ""
+},
+{
+	"uri": "/authors/",
+	"title": "Credits",
+	"tags": [],
+	"description": "",
+	"content": " Thanks to our wonderful contributors  for making Open Source a better place! Please go to Contributors page to checkout authors for this Workshop\n"
+},
+{
+	"uri": "/tags/",
+	"title": "Tags",
+	"tags": [],
+	"description": "",
+	"content": ""
+}]

@@ -1,0 +1,10 @@
+# Uncomment the next line to define a global platform for your project
+platform :ios, '13.0'
+
+target 'AWSS3Sample' do
+  use_frameworks!
+  inhibit_all_warnings!
+
+  # Pods for AWSS3Sample
+  pod 'AWSS3'
+end
